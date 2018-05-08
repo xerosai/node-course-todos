@@ -25,6 +25,15 @@ app.post('/todos', (req, res) => {
     })
 });
 
+app.get('/todos', (req, res) => {
+    Todo.find().then(todos => {
+        res.send({todos});
+    }).catch(err => {
+        console.log(`Failed to fetch todos with error: ${err}`);
+        res.status(400).send(err);
+    });
+});
+
 const port = process.env.PORT || 3451;
 app.listen(port, () => {
     console.log(`Server started on port: ${port}`);
