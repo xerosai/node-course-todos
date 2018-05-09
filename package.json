@@ -4,7 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "mocha server/**/*.test.js",
+    "test": "NODE_ENV=testing mocha server/**/*.test.js",
     "test-watch": "nodemon --exec \"npm run test\"",
     "dev": "NODE_ENV=development nodemon server/server.js",
     "start": "NODE_ENV=production node server/server.js"
