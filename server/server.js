@@ -7,7 +7,7 @@ const {ObjectID} = require('mongodb');
 
 const {mongoose} = require('./db/mongoose');
 const {Todo} = require('./models/Todo');
-const {User} = require('./models/User');
+const User = require('./models/User');
 
 const app = express();
 
@@ -99,7 +99,21 @@ app.patch('/todos/:id', (req, res) => {
     }).catch(err => {
         return res.status(400).send();
     })
-})
+});
+
+app.post('/users', (req, res) => {
+    const body = _.pick(req.body, ['email', 'password']);
+    const user = new User(body);
+
+    user.save().then(() => {
+        // res.send(doc);
+        return user.generateAuthToken();
+    }).then(token => {
+        res.header('x-auth', token).send(user);
+    }).catch(err => {
+        return res.status(400).send(err);
+    });
+});
 
 
 const port = process.env.PORT || 3451;
