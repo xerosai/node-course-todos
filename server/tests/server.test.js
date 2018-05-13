@@ -161,7 +161,7 @@ describe('POST /users', () => {
         });
     });
 
-    it('should return validation erros if request invalid', (done) => {
+    it('should return validation errors if request invalid', (done) => {
         const email = 'example';
         const password = 'pw';
 
@@ -219,6 +219,27 @@ describe('POST /users/login', () => {
 
             User.findById(users[1]._id).then(user => {
                 expect(user.tokens.length).toEqual(0);
+                done();
+            }).catch(err => done(err));
+        });
+    });
+});
+
+describe('DELETE /users/me/token', () => {
+    it('should remove auth token on logout', (done) => {
+        const token = users[0].tokens[0].token;
+
+        request(app)
+        .delete('/users/me/token')
+        .set('x-auth', token)
+        .expect(200)
+        .end((err, res) => {
+            if (err) {
+                return done(err);
+            }
+
+            User.findById(users[0]._id).then(user => {
+                expect(user.tokens.length).toBe(0);
                 done();
             }).catch(err => done(err));
         });
