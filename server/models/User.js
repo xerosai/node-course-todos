@@ -1,4 +1,5 @@
 const _ = require('lodash');
+const bCrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const mongoose = require('mongoose');
 const {Schema} = mongoose;
@@ -74,5 +75,23 @@ UserSchema.statics.findByToken = function (token) {
         'tokens.access': 'auth'
     });
 }
+
+UserSchema.pre('save', function(next) {
+
+    const user = this;
+
+    if (user.isModified('password')) {
+
+        bCrypt.genSalt(10, (error, salt) => {
+            bCrypt.hash(user.password, salt, (err, hashed) => {
+                user.password = hashed;
+                next();
+            });
+        });
+
+    } else {
+        next();
+    }
+});
 
 module.exports = mongoose.model('User', UserSchema);
