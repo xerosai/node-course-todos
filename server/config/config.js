@@ -1,5 +1,11 @@
 const env = process.env.NODE_ENV;
 
-if (env === 'testing') {
-    process.env.MONGODB_URI = 'mongodb://localhost:27017/TodoAppTesting';
+if (env === 'development' || env === 'testing') {
+    const config = require('./config.json');
+    console.log(config);
+    const envConfig = config[env];
+
+    Object.keys(envConfig).forEach(key => {
+        process.env[key] = envConfig[key];
+    });
 }
