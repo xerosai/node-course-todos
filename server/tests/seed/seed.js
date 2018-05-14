@@ -4,10 +4,13 @@ const {ObjectID} = require('mongodb');
 const {Todo} = require('../../models/Todo');
 const User = require('../../models/User');
 
+const userOneId = new ObjectID();
+const userTwoId = new ObjectID();
+
 module.exports.todos = [
-     {_id: new ObjectID(), text: 'Example todo one', completed: false},
-     {_id: new ObjectID(), text: 'Example todo two', completed: true, completedAt: Date.now()},
-     {_id: new ObjectID(), text: 'Final todo three', completed: false}
+     {_id: new ObjectID(), text: 'Example todo one', completed: false, _creator: userOneId},
+     {_id: new ObjectID(), text: 'Example todo two', completed: true, completedAt: Date.now(), _creator: userTwoId},
+     {_id: new ObjectID(), text: 'Final todo three', completed: false, _creator: userTwoId}
 ];
 
 module.exports.populateTodos = done => {
@@ -19,9 +22,6 @@ module.exports.populateTodos = done => {
         done(err);
     });
 };
-
-const userOneId = new ObjectID();
-const userTwoId = new ObjectID();
 
 module.exports.users = [
     {
@@ -35,7 +35,11 @@ module.exports.users = [
     }, {
         _id: userTwoId,
         email: 'jen@example.com',
-        password: 'userTwoPass'
+        password: 'userTwoPass',
+        tokens: [{
+            access: 'auth',
+            token: jwt.sign({_id: userTwoId, access: 'auth'}, 'supersecret').toString()
+        }]
     }
 ];
 
