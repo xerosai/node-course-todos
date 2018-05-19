@@ -16,105 +16,118 @@ app.use(bodyParser.json({
     limit: '1024kb'
 }));
 
-app.post('/todos', authenticate, (req, res) => {
+app.post('/todos', authenticate, async (req, res) => {
 
-    const todo = new Todo({
-        text: req.body.text ? req.body.text.trim() : null,
-        _creator: req.user._id
-    });
+    try {
+        const todo = await new Todo({
+            text: req.body.text ? req.body.text.trim() : null,
+            _creator: req.user._id
+        }).save();
 
-    todo.save().then(doc => {
-        res.send(doc);
-    }).catch(err => {
-        console.log(`Failed to save todo with error: ${err}`);
-        res.status(400).send(err);
-    })
-});
-
-app.get('/todos', authenticate, (req, res) => {
-    Todo.find({_creator: req.user._id}).then(todos => {
-        res.send({todos});
-    }).catch(err => {
-        console.log(`Failed to fetch todos with error: ${err}`);
-        res.status(400).send(err);
-    });
-});
-
-app.get('/todos/:id', authenticate, (req, res) => {
-    const todoId = req.params.id;
-
-    if (!ObjectID.isValid(todoId)) {
-        return res.status(404).send('Invalid ID');
+        res.send(todo);
+    } catch (e) {
+        res.status(400).send(e);
     }
+});
 
-    Todo.findOne({_id: todoId, _creator: req.user._id}).then(todo => {
+app.get('/todos', authenticate, async (req, res) => {
+
+    try {
+        const todos = await Todo.find({_creator: req.user._id})
+
+        res.send({todos});
+    } catch (e) {
+        res.status(400).send(e);
+    }
+});
+
+app.get('/todos/:id', authenticate, async (req, res) => {
+
+    try {
+        const todoId = req.params.id;
+
+        if (!ObjectID.isValid(todoId)) {
+            return res.status(404).send('Invalid ID');
+        }
+
+        const todo = await Todo.findOne({_id: todoId, _creator: req.user._id});
+
         if(!todo) {
             return res.status(404).send('Todo not found');
         }
 
         return res.send({todo});
-    }).catch(err => {
+    } catch (e) {
         res.status(400).send({message: 'An unspecified error occurred'});
-    });
-});
-
-app.delete('/todos/:id', authenticate, (req, res) => {
-    const id = req.params.id;
-
-    if (!ObjectID.isValid(id)) {
-        return res.status(404).send('Todo not found');
     }
 
-    Todo.findOneAndRemove({_id: id, _creator: req.user._id}).then(doc => {
+});
+
+app.delete('/todos/:id', authenticate, async (req, res) => {
+
+    try {
+        const id = req.params.id;
+
+        if (!ObjectID.isValid(id)) {
+            return res.status(404).send('Todo not found');
+        }
+
+        const doc = await Todo.findOneAndRemove({_id: id, _creator: req.user._id});
+
         if (!doc) {
             return res.status(404).send({message: 'Todo not found'});
         }
 
         return res.status(200).send({todo: doc});
-    }).catch(err => {
+    } catch (e) {
         return res.status(400).send();
-    });
+    }
+
 });
 
-app.patch('/todos/:id', authenticate, (req, res) => {
-    const id = req.params.id;
+app.patch('/todos/:id', authenticate, async (req, res) => {
 
-    if (!ObjectID.isValid(id)) {
-        return res.status(404).send('Todo not found');
-    }
+    try {
+        const id = req.params.id;
 
-    const body = _.pick(req.body, ['text', 'completed']);
+        if (!ObjectID.isValid(id)) {
+            return res.status(404).send('Todo not found');
+        }
 
-    if (_.isBoolean(body.completed) && body.completed) {
-        body.completedAt = Date.now();
-    } else {
-        body.completed = false;
-        body.completedAt = null;
-    }
+        const body = _.pick(req.body, ['text', 'completed']);
 
-    Todo.findOneAndUpdate({_id: id, _creator: req.user._id}, {$set: body}, {new: true}).then(todo => {
+        if (_.isBoolean(body.completed) && body.completed) {
+            body.completedAt = Date.now();
+        } else {
+            body.completed = false;
+            body.completedAt = null;
+        }
+
+        const todo = await Todo.findOneAndUpdate({_id: id, _creator: req.user._id}, {$set: body}, {new: true});
+
         if (!todo) {
             return res.status(404).send();
         }
 
         res.send({todo});
-    }).catch(err => {
+    } catch (e) {
         return res.status(400).send();
-    })
+    }
+
 });
 
-app.post('/users', (req, res) => {
-    const body = _.pick(req.body, ['email', 'password']);
-    const user = new User(body);
+app.post('/users', async (req, res) => {
+    try {
+        const body = _.pick(req.body, ['email', 'password']);
 
-    user.save().then(() => {
-        // res.send(doc);
-        return user.generateAuthToken();
-    }).then(token => {
+        const user = await new User(body).save();
+
+        const token = user.generateAuthToken();
+
         res.header('x-auth', token).send(user);
-    }).catch(err => {
-        return res.status(400).send(err);
-    });
+    } catch (e) {
+        return res.status(400).send(e);
+    }
 });
 
 
@@ -123,25 +136,30 @@ app.get('/users/me', authenticate, (req, res) => {
     res.send(req.user);
 });
 
-app.post('/users/login', (req, res) => {
-    const body = _.pick(req.body, ['email', 'password']);
+app.post('/users/login',  async (req, res) => {
 
-    User.findByCredentials(body.email, body.password).then(user => {
+    try {
+        const body = _.pick(req.body, ['email', 'password']);
 
-        return user.generateAuthToken().then(token => {
-            res.header('x-auth', token).send(user);
-        });
-    }).catch(error => {
+        const user = await User.findByCredentials(body.email, body.password);
+
+        const token = await user.generateAuthToken();
+
+        res.header('x-auth', token).send(user);
+    } catch (e) {
         res.status(400).send();
-    });
+    }
+
 });
 
-app.delete('/users/me/token', authenticate, (req, res) => {
-    req.user.removeToken(req.token).then(() => {
+app.delete('/users/me/token', authenticate, async (req, res) => {
+
+    try {
+        await req.user.removeToken(req.token);
         res.status(200).send();
-    }).catch((err) => {
+    } catch (e) {
         res.status(400).send();
-    });
+    }
 });
 
 const port = process.env.PORT || 3451;
